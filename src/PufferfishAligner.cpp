@@ -725,6 +725,75 @@ bool foundTruth(std::string &refName, std::string &readName) {
     return false;
 }
 
+template <typename ReadPairT, typename IndexT>
+inline uint32_t writeGeneAlignmentsToFile(
+        ReadPairT& r, PairedAlignmentFormatter<IndexT>& formatter,
+        std::vector<util::QuasiAlignment>& jointHits, std::stringstream& ss)
+{
+
+    auto& read1Temp = formatter.read1Temp;
+    auto& read2Temp = formatter.read2Temp;
+
+    auto& readName = r.first.name;
+    size_t splitPos = readName.find(' ');
+    if (splitPos < readName.length()) {
+        readName[splitPos] = '\0';
+    } else {
+        splitPos = readName.length();
+    }
+    if (splitPos > 2 and readName[splitPos - 2] == '/') {
+        readName[splitPos - 2] = '\0';
+    }
+
+    auto& mateName = r.second.name;
+    splitPos = mateName.find(' ');
+    if (splitPos < mateName.length()) {
+        mateName[splitPos] = '\0';
+    } else {
+        splitPos = mateName.length();
+    }
+    if (splitPos > 2 and mateName[splitPos - 2] == '/') {
+        mateName[splitPos - 2] = '\0';
+    }
+    bool haveRev1{false};
+    bool haveRev2{false};
+
+    for (auto& qa : jointHits)
+    {
+        if (qa.isPaired)
+        {
+            auto& refName = formatter.index->refName(qa.tid);
+            std::string* readSeq1 = &(r.first.seq);
+            if (!qa.fwd) {
+                if (!haveRev1) {
+                    util::reverseRead(*readSeq1, read1Temp);
+                    haveRev1 = true;
+                }
+                readSeq1 = &(read1Temp);
+            }
+            std::string* readSeq2 = &(r.second.seq);
+            if (!qa.mateIsFwd) {
+                if (!haveRev2) {
+                    util::reverseRead(*readSeq2, read2Temp);
+                    haveRev2 = true;
+                }
+                readSeq2 = &(read2Temp);
+            }
+            ss << readName.c_str() << '\t'
+               << refName << '\t'
+               << qa.pos + 1 << '\t'
+               << qa.matePos + 1 << '\t'
+               << *readSeq1 << '\t' ;
+
+            ss << mateName.c_str() << '\t'
+               << refName << '\t'
+               << qa.matePos + 1 << '\t'
+               << qa.pos + 1 << '\t'
+               << *readSeq2 << '\t' ;
+        }
+    }
+}
+
 /**
  * Main function for processing paired-end reads.
  **/
@@ -745,6 +814,7 @@ void processReadsPair(paired_parser *parser,
 
     auto logger = spdlog::get("stderrLog");
     fmt::MemoryWriter sstream;
+    std::stringstream ss;
     BinWriter bstream;
     //size_t batchSize{2500} ;
     size_t readLen{0};
@@ -765,6 +835,7 @@ void processReadsPair(paired_parser *parser,
     config.bandwidth = -1;
     config.flag = KSW_EZ_RIGHT;
     aligner.config() = config;
+    std::string outputNewStr = "";
 
     auto rg = parser->getReadGroup();
     while (parser->refill(rg)) {
@@ -928,6 +999,10 @@ void processReadsPair(paired_parser *parser,
                                                     mopts->justMap);
                 }
             }
+            if (jointAlignments.size() > 0)
+            {
+                writeGeneAlignmentsToFile(rpair, formatter, jointAlignments, ss);
+            }
 
             /*if (mopts->noOutput) {
                 if (jointHits.size() == 1) {
@@ -1030,7 +1105,16 @@ void processReadsPair(paired_parser *parser,
             bstream.clear();
         }
 
+        outputNewStr += ss.str();
+        // Get rid of last newline
+        if (!outputNewStr.empty()) {
+            outputNewStr.pop_back();
+        }
+
     } // processed all reads
+    std::ofstream outNewAlign(mopts->outname + "/newAlignmentLocations.txt");
+    outNewAlign << outputNewStr;
+    outNewAlign.close();
 }
 
 //===========
