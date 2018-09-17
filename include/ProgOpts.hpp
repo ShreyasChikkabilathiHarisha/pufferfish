@@ -58,6 +58,8 @@ public:
   bool noDiscordant{false};
   bool noOrphan{false};
   bool compressedOutput{false};
+  std::string fusionOutName;
+  bool fusionDetectionEnabled{false};
 };
 
 

@@ -783,15 +783,16 @@ inline uint32_t writeGeneAlignmentsToFile(
                << refName << '\t'
                << qa.pos + 1 << '\t'
                << qa.matePos + 1 << '\t'
-               << *readSeq1 << '\t' ;
+               << *readSeq1 << '\n' ;
 
             ss << mateName.c_str() << '\t'
                << refName << '\t'
                << qa.matePos + 1 << '\t'
                << qa.pos + 1 << '\t'
-               << *readSeq2 << '\t' ;
+               << *readSeq2 << '\n' ;
         }
     }
+    return 0;
 }
 
 /**
@@ -999,7 +1000,7 @@ void processReadsPair(paired_parser *parser,
                                                     mopts->justMap);
                 }
             }
-            if (jointAlignments.size() > 0)
+            if (mopts->fusionDetectionEnabled && jointAlignments.size() > 0)
             {
                 writeGeneAlignmentsToFile(rpair, formatter, jointAlignments, ss);
             }
@@ -1112,9 +1113,12 @@ void processReadsPair(paired_parser *parser,
         }
 
     } // processed all reads
-    std::ofstream outNewAlign(mopts->outname + "/newAlignmentLocations.txt");
-    outNewAlign << outputNewStr;
-    outNewAlign.close();
+    if(mopts->fusionDetectionEnabled)
+    {
+        std::ofstream outNewAlign(mopts->fusionOutName);
+        outNewAlign << outputNewStr;
+        outNewAlign.close();
+    }
 }
 
 //===========
