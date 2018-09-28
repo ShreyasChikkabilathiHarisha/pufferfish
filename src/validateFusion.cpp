@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     string ln, referenceName, pos1, pos2, gene_chromosome_name, readSeq;
     unordered_map<string, string> genomes;
     unordered_map<string, unordered_set<string>> read_gene_map;
-    double countRefMatch = 0;
+    long countFusionEvent = 0;
     if(argc == 1)
     {
         cout<<"No input file specified\n"<<endl;
@@ -52,11 +52,12 @@ int main(int argc, char *argv[])
                                 }
         }
     }
-    cout << "Fused genes found:\n";
+    cout << "*** Fusion event found ***\n";
     for(const auto &genItr : read_gene_map)
     {
         if(genItr.second.size() > 1)
         {
+/*
             vector<string> vec_gene;
             for(auto itr_mp = genItr.second.begin(); itr_mp != genItr.second.end(); itr_mp++)
                 vec_gene.push_back(*itr_mp);
@@ -73,7 +74,9 @@ int main(int argc, char *argv[])
             for(auto fused_genes : vec_gene)
                 cout << fused_genes << ",\t";
             cout << endl;
+*/
+	    countFusionEvent++;
         }
     }
-    cout << "\nTotal number of Gene Fusions detected: " << genomes.size() << endl;
+    cout << "\nTotal number of Gene Fusion event detected: " << countFusionEvent << endl;
 }
