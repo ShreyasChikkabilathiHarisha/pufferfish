@@ -1,3 +1,9 @@
+/*
+How to run Validation script:
+g++ --std=c++11 validationScript.cpp -o validation
+./validation ../data/true_gene_fusion_events_expected.txt <output_file_after_fusion_detection_with_gene_pairs> 
+*/
+
 #include <iostream>
 #include <vector>
 #include <unordered_set>
@@ -13,70 +19,60 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    cout<<"Started\n\n";
+    cout<<"Validation started\n\n";
     string ln, referenceName, pos1, pos2, gene_chromosome_name, readSeq;
+    string gene_A, gene_B, gene_a;
+    unordered_map<string, string> fusion_genes, fusion_genes_found;
+    unordered_multimap<string, string> true_positive, false_positive;
     unordered_map<string, string> genomes;
     unordered_map<string, unordered_set<string>> read_gene_map;
     long countFusionEvent = 0;
-    if(argc == 1)
+//    if(argc == 1)
+    if(argc < 3)
     {
-        cout<<"No input file specified\n"<<endl;
+        cout<<"2 Input files for validation not specified\n"<<endl;
         exit(1);
     }
     ifstream fl(argv[1]);
     while(getline(fl, ln))
     {
         istringstream iss(ln);
-        if (!(iss >> referenceName >> gene_chromosome_name >> pos1 >> pos2 >> readSeq))
-            break;
-        if((gene_chromosome_name[0] == 'E') && (gene_chromosome_name[1] == 'N'))
+        if(iss >> gene_A >> gene_B)
         {
-            string gene_for_the_current_read;
-            stringstream iss3(gene_chromosome_name);
-            if(getline(iss3, gene_for_the_current_read, '|'))
-                if(getline(iss3, gene_for_the_current_read, '|'))
-                    if(getline(iss3, gene_for_the_current_read, '|'))
-                        if(getline(iss3, gene_for_the_current_read, '|'))
-                            if(getline(iss3, gene_for_the_current_read, '|'))
-                                if(getline(iss3, gene_for_the_current_read, '|'))
-                                {
-                                    auto itr_read = read_gene_map.find(referenceName);
-                                    if(itr_read == read_gene_map.end())
-                                    {
-                                        unordered_set<string> gene_for_this_read;
-                                        gene_for_this_read.emplace(gene_for_the_current_read);
-                                        read_gene_map.emplace(referenceName, gene_for_this_read);
-                                    }
-                                    else
-                                        itr_read->second.emplace(gene_for_the_current_read);
-                                }
+            if(gene_A == "nameA" && gene_B == "nameB")
+                continue;
+//            cout << gene_A << ", " << gene_B << endl;
+            fusion_genes[gene_A] = gene_B;
         }
     }
-    cout << "*** Fusion event found ***\n";
-    for(const auto &genItr : read_gene_map)
+    cout << "\nTotal number of expected Fusion events = " << fusion_genes.size() << endl;
+    ifstream f2(argv[2]);
+    while(getline(f2, ln))
+    {   
+        istringstream iss(ln);
+        if(iss >> gene_A >> gene_B)
+        {   
+            if(gene_A == "nameA" && gene_B == "nameB")
+                continue;
+//            cout << gene_A << ", " << gene_B << endl;
+            fusion_genes_found[gene_A] = gene_B;
+        }
+    }
+    cout << "Total number of Fusion events found = " << fusion_genes_found.size() << endl;
+    for(auto it : fusion_genes_found)
     {
-        if(genItr.second.size() > 1)
-        {
-/*
-            vector<string> vec_gene;
-            for(auto itr_mp = genItr.second.begin(); itr_mp != genItr.second.end(); itr_mp++)
-                vec_gene.push_back(*itr_mp);
-            // Assuming fusion by the reads mapping to 2 different genes
-            auto it_g1 = genomes.find(vec_gene[0]);
-            auto it_g2 = genomes.find(vec_gene[1]);
-            if(it_g1 != genomes.end())
-              if(it_g1->second == vec_gene[1])
-                continue;
-            if(it_g2 != genomes.end())
-              if(it_g2->second == vec_gene[0])
-                continue;
-            genomes.emplace(vec_gene[0], vec_gene[1]);
-            for(auto fused_genes : vec_gene)
-                cout << fused_genes << ",\t";
-            cout << endl;
-*/
-	    countFusionEvent++;
-        }
+        auto i1 = fusion_genes.find(it.first);
+        auto i2 = fusion_genes.find(it.second);
+        if((i1 != fusion_genes.end() && i1->second == it.second) || (i2 != fusion_genes.end() && i2->second == it.second))
+           true_positive.emplace(it.first, it.second);
+        else
+            false_positive.emplace(it.first, it.second);
     }
-    cout << "\nTotal number of Gene Fusion event detected: " << countFusionEvent << endl;
+
+    cout << "Total number of True positive Fusion events detected: " << true_positive.size() << endl << "True positive Fusion events detected are: \n";
+    for(auto i : true_positive)
+        cout << "\t" << i.first << " - " << i.second << endl;
+    cout << "\nTotal number of False positive Fusion events detected: " << false_positive.size() << endl;
+    return 0;
 }
+
