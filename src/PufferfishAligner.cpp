@@ -72,6 +72,8 @@ using QuasiAlignment = util::QuasiAlignment;
 using MateStatus = util::MateStatus;
 
 using MutexT = std::mutex;
+int c_ = 0;
+std::string outputNewStr = "";
 
 template<typename PufferfishIndexT>
 void printMemInfo(size_t tid,
@@ -728,7 +730,9 @@ bool foundTruth(std::string &refName, std::string &readName) {
 template <typename ReadPairT, typename IndexT>
 inline uint32_t writeGeneAlignmentsToFile(
         ReadPairT& r, PairedAlignmentFormatter<IndexT>& formatter,
-        std::vector<util::QuasiAlignment>& jointHits, std::stringstream& ss)
+        std::vector<util::QuasiAlignment>& jointHits, /*std::stringstream& ss,*/
+	bool writeOrphans,
+	std::unordered_map<std::string, std::unordered_map<std::string, int>>& read_fusiongenes)
 {
 
     auto& read1Temp = formatter.read1Temp;
@@ -757,12 +761,14 @@ inline uint32_t writeGeneAlignmentsToFile(
     }
     bool haveRev1{false};
     bool haveRev2{false};
-
+//    ss << readName.c_str() << '\t';
+//    std::vector<std::string> list_of_genes;
+//    std::unordered_set<std::string> list_of_genes_set;
     for (auto& qa : jointHits)
     {
+	auto& refName = formatter.index->refName(qa.tid);
         if (qa.isPaired)
         {
-            auto& refName = formatter.index->refName(qa.tid);
             std::string* readSeq1 = &(r.first.seq);
             if (!qa.fwd) {
                 if (!haveRev1) {
@@ -779,6 +785,65 @@ inline uint32_t writeGeneAlignmentsToFile(
                 }
                 readSeq2 = &(read2Temp);
             }
+            std::string full_gene_name = refName;
+            if((full_gene_name.size() > 2) && (full_gene_name[0] == 'E' && full_gene_name[1] == 'N'))
+            {
+                std::string parse;
+                std::stringstream iss3(full_gene_name);
+                if(getline(iss3, parse, '|'))
+                    if(getline(iss3, parse, '|'))
+                        if(getline(iss3, parse, '|'))
+                            if(getline(iss3, parse, '|'))
+                                if(getline(iss3, parse, '|'))
+                                    if(getline(iss3, parse, '|'))
+                                    {
+
+                                        auto it = read_fusiongenes.find(readName);
+                                        if(it == read_fusiongenes.end())
+                                        {
+                                            std::unordered_map<std::string, int> st_;
+                                            st_.emplace(parse, 1);
+                                            read_fusiongenes[readName] = st_;
+                                        }
+                                        else
+                                        {
+                                            auto it_m = read_fusiongenes[readName].find(parse);
+                                            if(it_m == read_fusiongenes[readName].end())
+                                            {
+                                                //std::unordered_map<std::string, int> st_;
+                                                //st_.emplace(parse, 1);
+                                                read_fusiongenes[readName][parse] = 1;
+                                            }
+                                            else
+                                            {
+                                                read_fusiongenes[readName][parse]++;
+                                            }
+                                        }
+                                        auto it2 = read_fusiongenes.find(mateName);
+                                        if(it2 == read_fusiongenes.end())
+                                        {
+                                            std::unordered_map<std::string, int> st_;
+                                            st_.emplace(parse, 1);
+                                            read_fusiongenes[mateName] = st_;
+                                        }
+                                        else
+                                        {
+                                            auto it_m = read_fusiongenes[mateName].find(parse);
+                                            if(it_m == read_fusiongenes[mateName].end())
+                                            {
+                                                //std::unordered_map<std::string, int> st_;
+                                                //st_.emplace(parse, 1);
+                                                read_fusiongenes[mateName][parse] = 1;
+                                            }
+                                            else
+                                            {
+                                                read_fusiongenes[mateName][parse]++;
+                                            }
+                                        }
+//                                        ss << '\t' << parse;
+                                    }
+            }
+/*
             ss << readName.c_str() << '\t'
                << refName << '\t'
                << qa.pos + 1 << '\t'
@@ -790,8 +855,74 @@ inline uint32_t writeGeneAlignmentsToFile(
                << qa.matePos + 1 << '\t'
                << qa.pos + 1 << '\t'
                << *readSeq2 << '\n' ;
+*/
+        }
+
+        else if(writeOrphans)
+        {
+            std::string full_gene_name = refName;
+            if((full_gene_name.size() > 2) && (full_gene_name[0] == 'E' && full_gene_name[1] == 'N'))
+            {
+                std::string parse;
+                std::stringstream iss3(full_gene_name);
+                if(getline(iss3, parse, '|'))
+                    if(getline(iss3, parse, '|'))
+                        if(getline(iss3, parse, '|'))
+                            if(getline(iss3, parse, '|'))
+                                if(getline(iss3, parse, '|'))
+                                    if(getline(iss3, parse, '|'))
+                                    {
+				//	read_fusiongenes[readName][parse]++;
+                                        auto it = read_fusiongenes.find(readName);
+                                        if(it == read_fusiongenes.end())
+                                        {
+                                            std::unordered_map<std::string, int> st_;
+                                            st_.emplace(parse, 1);
+                                            read_fusiongenes[readName] =  st_;
+                                        }
+                                        else
+                                        {
+//					    read_fusiongenes[readName][parse]++;
+
+                                            auto it_m = read_fusiongenes[readName].find(parse);
+                                            if(it_m == read_fusiongenes[readName].end())
+                                            {
+                                                read_fusiongenes[readName][parse] = 1;
+                                            }
+                                            else
+                                            {
+                                                read_fusiongenes[readName][parse]++;
+                                            }
+
+                                        }
+                                        auto it2 = read_fusiongenes.find(mateName);
+                                        if(it2 == read_fusiongenes.end())
+                                        {
+                                            std::unordered_map<std::string, int> st_;
+                                            st_.emplace(parse, 1);
+                                            read_fusiongenes[mateName] = st_;
+                                        }
+                                        else
+                                        {
+                                            auto it_m = read_fusiongenes[mateName].find(parse);
+                                            if(it_m == read_fusiongenes[mateName].end())
+                                            {
+                                                //std::unordered_map<std::string, int> st_;
+                                                //st_.emplace(parse, 1);
+                                                read_fusiongenes[mateName][parse] = 1;
+                                            }
+                                            else
+                                            {
+                                                read_fusiongenes[mateName][parse]++;
+                                            }
+                                        }
+                                    }
+            }
         }
     }
+//    std::sort(list_of_genes.begin(), list_of_genes.end());
+//    read_fusiongenes.emplace(list_of_genes);
+    // ss << '\n';
     return 0;
 }
 
@@ -806,7 +937,6 @@ void processReadsPair(paired_parser *parser,
                       HitCounters &hctr,
                       AlignmentOpts *mopts) {
     MemCollector<PufferfishIndexT> memCollector(&pfi);
-
     //create aligner
     spp::sparse_hash_map<uint32_t, util::ContigBlock> contigSeqCache;
     RefSeqConstructor<PufferfishIndexT> refSeqConstructor(&pfi, &contigSeqCache);
@@ -816,6 +946,8 @@ void processReadsPair(paired_parser *parser,
     auto logger = spdlog::get("stderrLog");
     fmt::MemoryWriter sstream;
     std::stringstream ss;
+    std::unordered_map<std::string, std::unordered_map<std::string, int>> read_fusiongenes;
+    std::unordered_map<std::string, std::string> fused_genes;
     BinWriter bstream;
     //size_t batchSize{2500} ;
     size_t readLen{0};
@@ -836,8 +968,8 @@ void processReadsPair(paired_parser *parser,
     config.bandwidth = -1;
     config.flag = KSW_EZ_RIGHT;
     aligner.config() = config;
-    std::string outputNewStr = "";
-
+//    std::string outputNewStr = "";
+// int ijk = 0;
     auto rg = parser->getReadGroup();
     while (parser->refill(rg)) {
         for (auto &rpair : rg) {
@@ -880,7 +1012,6 @@ void processReadsPair(paired_parser *parser,
                     /*,
                     mopts->consistentHits,
                     refBlocks*/);
-
             hctr.numMappedAtLeastAKmer += (leftHits.size() || rightHits.size()) ? 1 : 0;
             //do intersection on the basis of
             //performance, or going towards selective alignment
@@ -1002,7 +1133,7 @@ void processReadsPair(paired_parser *parser,
             }
             if (mopts->fusionDetectionEnabled && jointAlignments.size() > 0)
             {
-                writeGeneAlignmentsToFile(rpair, formatter, jointAlignments, ss);
+                writeGeneAlignmentsToFile(rpair, formatter, jointAlignments, !mopts->noOrphan,/* ss,*/ read_fusiongenes);
             }
 
             /*if (mopts->noOutput) {
@@ -1105,16 +1236,87 @@ void processReadsPair(paired_parser *parser,
             sstream.clear();
             bstream.clear();
         }
-
+/*
         outputNewStr += ss.str();
         // Get rid of last newline
         if (!outputNewStr.empty()) {
             outputNewStr.pop_back();
         }
-
+*/
     } // processed all reads
     if(mopts->fusionDetectionEnabled)
     {
+//std::cout << "Here in cout\n";
+        for(auto genItr = read_fusiongenes.begin(); genItr != read_fusiongenes.end(); genItr++)
+        {
+            if(genItr->second.size() > 1)
+            {
+                std::vector<std::string> vec_gene;
+                for(auto itr_mp = genItr->second.begin(); itr_mp != genItr->second.end(); itr_mp++)
+//		    if(itr_mp->second > 1)
+                        vec_gene.push_back(itr_mp->first);
+		if(vec_gene.size() < 2)
+		    continue;
+//                for(auto itr_mp1: genItr->second)
+//                    if(itr_mp1.second > 1)
+//                        vec_gene.push_back(itr_mp1.first);
+                if(vec_gene.size() == 2)
+                {
+                    auto it_g1 = fused_genes.find(vec_gene[0]);
+                    auto it_g2 = fused_genes.find(vec_gene[1]);
+                    if (it_g1 != fused_genes.end())
+                        if (it_g1->second == vec_gene[1])
+                            continue;
+                    if (it_g2 != fused_genes.end())
+                        if (it_g2->second == vec_gene[0])
+                            continue;
+                    fused_genes.emplace(vec_gene[0], vec_gene[1]);
+                    for (auto fused_genes : vec_gene)
+                        ss << fused_genes << "\t";
+                    ss << std::endl;
+                }
+                else if(vec_gene.size() > 2)
+                {
+                    std::vector<std::pair<std::string, std::string>> all_gene_combinations;
+                    auto vec_gene_copy = vec_gene;
+                    for(int i = 0; i < vec_gene.size()-1; i++)
+                        for(int j = i+1; j < vec_gene_copy.size(); j++)
+                        {
+                            all_gene_combinations.push_back({vec_gene[i], vec_gene_copy[j]});
+                        }
+                    for(auto i: all_gene_combinations)
+                    {
+                        auto it_g1 = fused_genes.find(i.first);
+                        auto it_g2 = fused_genes.find(i.second);
+                        if (it_g1 != fused_genes.end())
+                            if (it_g1->second == i.second)
+                                continue;
+                        if (it_g2 != fused_genes.end())
+                            if (it_g2->second == i.first)
+                                continue;
+                        fused_genes.emplace(i.first, i.second);
+                        //for (auto fused_genes : vec_gene)
+                        //    ss << fused_genes << "\t";
+                        ss << i.first << "\t" << i.second << std::endl;
+                    }
+                }
+/*                auto it_g1 = fused_genes.find(vec_gene[0]);
+                auto it_g2 = fused_genes.find(vec_gene[1]);
+                if(it_g1 != fused_genes.end())
+                    if(it_g1->second == vec_gene[1])
+                        continue;
+                if(it_g2 != fused_genes.end())
+                    if(it_g2->second == vec_gene[0])
+                        continue;
+                fused_genes.emplace(vec_gene[0], vec_gene[1]);
+                for(auto fused_genes : vec_gene)
+                    ss << fused_genes << "\t";
+                ss << std::endl;
+*/
+            }
+        }
+        outputNewStr += ss.str();
+
         std::ofstream outNewAlign(mopts->fusionOutName);
         outNewAlign << outputNewStr;
         outNewAlign.close();
@@ -1551,7 +1753,6 @@ int pufferfishAligner(AlignmentOpts &alnargs) {
         PufferfishLossyIndex pfi(indexDir);
         success = alignReads(pfi, consoleLog, &alnargs);
     }
-
     if (!success) {
         consoleLog->warn("Problem mapping.");
     }
