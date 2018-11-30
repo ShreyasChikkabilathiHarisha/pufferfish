@@ -94,3 +94,10 @@ We can generate different types of output including sam. If you have samtools in
 
 For the address of the reads, index, truth files, etc. you need to have a config file like `microbiome_config.json`.
 
+# Fusion detection
+We can detect fusion events in the read using Pufferfish using the built-in option `--detect-fusion`.
+
+```
+<Pufferfish Directory>/build/src/pufferfish align -m -i <pufferfish index directory> --mate1 <pair_read_1> --mate2 <pair_read_2> --scoreRatio <value between 0-1> --noOutput --detect-fusion <fusion_detection_output_file>
+```
+In the above command, `--noOutput` is used to not write the mapping to a file since in this case, we are concentrating on fusion detection. But, if we want, we can specify `-o <out_dir>` to write the apping to a file.
