@@ -104,7 +104,7 @@ In the above command, `--noOutput` is used to not write the mapping to a file si
 In this expiriment, I have used scoreRatio of 0.75 to detect the splicing event.
 To run validation:
 ```
-g++ --std=c++11 <Pufferfish Directory>/src/validationScript.cpp -o validation
+g++ <Pufferfish Directory>/src/validationScript.cpp -o validation --std=c++11
 ./validation <Pufferfish Directory>/data/true_gene_fusion_events_expected.txt <fusion_detection_output_file> > <Pufferfish Directory>/data/fusion_validation_result.txt
 ```
 After the above validation commands, the result will be stored in fusion_validation_result.txt mentioned above.
