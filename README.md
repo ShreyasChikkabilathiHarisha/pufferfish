@@ -101,3 +101,10 @@ We can detect fusion events in the read using Pufferfish using the built-in opti
 <Pufferfish Directory>/build/src/pufferfish align -m -i <pufferfish index directory> --mate1 <pair_read_1> --mate2 <pair_read_2> --scoreRatio <value between 0-1> --noOutput --detect-fusion <fusion_detection_output_file>
 ```
 In the above command, `--noOutput` is used to not write the mapping to a file since in this case, we are concentrating on fusion detection. But, if we want, we can specify `-o <out_dir>` to write the apping to a file.
+In this expiriment, I have used scoreRatio of 0.75 to detect the splicing event.
+To run validation:
+```
+g++ --std=c++11 <Pufferfish Directory>/src/validationScript.cpp -o validation
+./validation <Pufferfish Directory>/data/true_gene_fusion_events_expected.txt <fusion_detection_output_file> > <Pufferfish Directory>/data/fusion_validation_result.txt
+```
+After the above validation commands, the result will be stored in fusion_validation_result.txt mentioned above.

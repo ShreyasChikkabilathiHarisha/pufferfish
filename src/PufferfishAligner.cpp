@@ -732,7 +732,8 @@ inline uint32_t writeGeneAlignmentsToFile(
         ReadPairT& r, PairedAlignmentFormatter<IndexT>& formatter,
         std::vector<util::QuasiAlignment>& jointHits, /*std::stringstream& ss,*/
 	bool writeOrphans,
-	std::unordered_map<std::string, std::unordered_map<std::string, int>>& read_fusiongenes)
+	std::unordered_map<std::string, std::unordered_map<std::string, int>>& read_fusiongenes/*,
+	std::unordered_map<std::string, std::unordered_map<std::string, int>>& fusion_event*/)
 {
 
     auto& read1Temp = formatter.read1Temp;
@@ -804,6 +805,7 @@ inline uint32_t writeGeneAlignmentsToFile(
                                             std::unordered_map<std::string, int> st_;
                                             st_.emplace(parse, 1);
                                             read_fusiongenes[readName] = st_;
+//                                            list_of_genes.push_back(parse);
                                         }
                                         else
                                         {
@@ -813,6 +815,7 @@ inline uint32_t writeGeneAlignmentsToFile(
                                                 //std::unordered_map<std::string, int> st_;
                                                 //st_.emplace(parse, 1);
                                                 read_fusiongenes[readName][parse] = 1;
+//                                                list_of_genes.push_back(parse);
                                             }
                                             else
                                             {
@@ -879,6 +882,7 @@ inline uint32_t writeGeneAlignmentsToFile(
                                             std::unordered_map<std::string, int> st_;
                                             st_.emplace(parse, 1);
                                             read_fusiongenes[readName] =  st_;
+//                                            list_of_genes.push_back(parse);
                                         }
                                         else
                                         {
@@ -888,6 +892,7 @@ inline uint32_t writeGeneAlignmentsToFile(
                                             if(it_m == read_fusiongenes[readName].end())
                                             {
                                                 read_fusiongenes[readName][parse] = 1;
+//                                                list_of_genes.push_back(parse);
                                             }
                                             else
                                             {
@@ -923,6 +928,59 @@ inline uint32_t writeGeneAlignmentsToFile(
 //    std::sort(list_of_genes.begin(), list_of_genes.end());
 //    read_fusiongenes.emplace(list_of_genes);
     // ss << '\n';
+/*
+    std::vector<std::pair<std::string, std::string>> all_gene_combinations;
+    for(size_t i = 0; i < list_of_genes.size()-1; i++)
+        for(size_t j = i+1; j < list_of_genes.size(); j++)
+        {
+            if(list_of_genes[i] == list_of_genes_copy[j])
+                continue;
+            auto it1 = fusion_event.find(list_of_genes[i]);
+            auto it2 = fusion_event.find(list_of_genes[j]);
+            bool found_pair = false, to_be_inserted = true;
+            if(it1 != fusion_event.end())
+            {
+		to_be_inserted = false;
+                for(auto itr_gene1 = it1->second.begin(); itr_gene1 != it1->second.end(); itr_gene1++)
+                {
+                    if(itr_gene1->first == list_of_genes[j])
+                    {
+                        fusion_event[list_of_genes[i]][list_of_genes[j]] += 1;
+                        found_pair = true;
+                        break;
+                    }
+                }
+            }
+            if(it2 != fusion_event.end())
+            {
+                for(auto itr_gene2 = it2->second.begin(); itr_gene2 != it2->second.end(); itr_gene2++)
+                {
+                    if(itr_gene2->first == list_of_genes[i])
+                    {
+                        fusion_event[list_of_genes[j]][list_of_genes[i]] += 1;
+                        found_pair = true;
+                        break;
+                    }
+                }
+            }
+	    if(to_be_inserted && !found_pair)
+	    {
+		std::unordered_map<std::string, int> tmp;
+		tmp.emplace(list_of_genes[j], 1);
+		fusion_event.emplace(list_of_genes[i], tmp);
+	    }
+            else if(!found_pair)
+            {
+                // std::unordered_map<std::string, int> tmp;
+                // tmp.emplace(list_of_genes[j], 1);
+                // fusion_event.emplace(list_of_genes[i], tmp);
+		fusion_event[list_of_genes[i]][list_of_genes[j]] = 1;
+                found_pair = false;
+            }
+ 
+      }
+*/
+    //list_of_genes.clear();
     return 0;
 }
 
@@ -947,6 +1005,7 @@ void processReadsPair(paired_parser *parser,
     fmt::MemoryWriter sstream;
     std::stringstream ss;
     std::unordered_map<std::string, std::unordered_map<std::string, int>> read_fusiongenes;
+//    std::unordered_map<std::string, std::unordered_map<std::string, int>> fusion_event;
     std::unordered_map<std::string, std::string> fused_genes;
     BinWriter bstream;
     //size_t batchSize{2500} ;
@@ -1133,7 +1192,7 @@ void processReadsPair(paired_parser *parser,
             }
             if (mopts->fusionDetectionEnabled && jointAlignments.size() > 0)
             {
-                writeGeneAlignmentsToFile(rpair, formatter, jointAlignments, !mopts->noOrphan,/* ss,*/ read_fusiongenes);
+                writeGeneAlignmentsToFile(rpair, formatter, jointAlignments, !mopts->noOrphan,/* ss,*/ read_fusiongenes/*, fusion_event*/);
             }
 
             /*if (mopts->noOutput) {
@@ -1246,7 +1305,6 @@ void processReadsPair(paired_parser *parser,
     } // processed all reads
     if(mopts->fusionDetectionEnabled)
     {
-//std::cout << "Here in cout\n";
         for(auto genItr = read_fusiongenes.begin(); genItr != read_fusiongenes.end(); genItr++)
         {
             if(genItr->second.size() > 1)
@@ -1255,8 +1313,8 @@ void processReadsPair(paired_parser *parser,
                 for(auto itr_mp = genItr->second.begin(); itr_mp != genItr->second.end(); itr_mp++)
 //		    if(itr_mp->second > 1)
                         vec_gene.push_back(itr_mp->first);
-		if(vec_gene.size() < 2)
-		    continue;
+//		if(vec_gene.size() < 2)
+//		    continue;
 //                for(auto itr_mp1: genItr->second)
 //                    if(itr_mp1.second > 1)
 //                        vec_gene.push_back(itr_mp1.first);
@@ -1264,23 +1322,21 @@ void processReadsPair(paired_parser *parser,
                 {
                     auto it_g1 = fused_genes.find(vec_gene[0]);
                     auto it_g2 = fused_genes.find(vec_gene[1]);
-                    if (it_g1 != fused_genes.end())
-                        if (it_g1->second == vec_gene[1])
+                    if (it_g1 != fused_genes.end() && it_g1->second == vec_gene[1])
                             continue;
-                    if (it_g2 != fused_genes.end())
-                        if (it_g2->second == vec_gene[0])
+                    if (it_g2 != fused_genes.end() && it_g2->second == vec_gene[0])
                             continue;
                     fused_genes.emplace(vec_gene[0], vec_gene[1]);
-                    for (auto fused_genes : vec_gene)
-                        ss << fused_genes << "\t";
-                    ss << std::endl;
+                    for (auto fused_g : vec_gene)
+                        ss << fused_g << "\t";
+                    ss << std::to_string(read_fusiongenes[genItr->first][vec_gene[0]]+read_fusiongenes[genItr->first][vec_gene[1]]) << std::endl;
                 }
                 else if(vec_gene.size() > 2)
                 {
                     std::vector<std::pair<std::string, std::string>> all_gene_combinations;
                     auto vec_gene_copy = vec_gene;
-                    for(int i = 0; i < vec_gene.size()-1; i++)
-                        for(int j = i+1; j < vec_gene_copy.size(); j++)
+                    for(size_t i = 0; i < vec_gene.size()-1; i++)
+                        for(size_t j = i+1; j < vec_gene_copy.size(); j++)
                         {
                             all_gene_combinations.push_back({vec_gene[i], vec_gene_copy[j]});
                         }
@@ -1288,16 +1344,16 @@ void processReadsPair(paired_parser *parser,
                     {
                         auto it_g1 = fused_genes.find(i.first);
                         auto it_g2 = fused_genes.find(i.second);
-                        if (it_g1 != fused_genes.end())
-                            if (it_g1->second == i.second)
+                        if (it_g1 != fused_genes.end() && it_g1->second == i.second)
                                 continue;
-                        if (it_g2 != fused_genes.end())
-                            if (it_g2->second == i.first)
+                        if (it_g2 != fused_genes.end() && it_g2->second == i.first)
                                 continue;
                         fused_genes.emplace(i.first, i.second);
                         //for (auto fused_genes : vec_gene)
                         //    ss << fused_genes << "\t";
-                        ss << i.first << "\t" << i.second << std::endl;
+			// filter out the genes which have less score. Atleast 2 mapping from each gene in the pair is expected/considered here
+			if(read_fusiongenes[genItr->first][i.first]+read_fusiongenes[genItr->first][i.second] > 3)// && read_fusiongenes[genItr->first][i.first]+read_fusiongenes[genItr->first][i.second] <8)
+                        	ss << i.first << "\t" << i.second << "\t" << std::to_string(read_fusiongenes[genItr->first][i.first]+read_fusiongenes[genItr->first][i.second]) << std::endl;
                     }
                 }
 /*                auto it_g1 = fused_genes.find(vec_gene[0]);
